@@ -1,0 +1,127 @@
+// use prisma-8
+model User {
+  id                   String                     @id @default(uuid())
+  clerkId              String                     @unique
+  email                String                     @unique
+  username             String?                    @unique
+  name                 String?
+  bio                  String?
+  location             String?
+  avatarUrl            String?
+  coverUrl             String?
+  createdAt            Date                       @default(now())
+  updatedAt            temporal.updatedAtString()
+
+  posts                Post[]
+  comments             Comment[]
+  likes                PostLike[]
+
+  followers            Follows[]                  @relation("account")
+  following            Follows[]                  @relation("followedBy")
+
+  notifications        Notification[]             @relation('receivedBy')
+  notificationsCreated Notification[]             @relation('createdBy')
+}
+
+model Post {
+  id            String                     @id @default(uuid())
+  authorId      String
+  content       String
+  image         String?
+  createdAt     TimestamptzString          @default(now())
+  updatedAt     temporal.updatedAtString()
+
+  //relations
+  author        User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments      Comment[]
+  likes         PostLike[]
+  notifications Notification[]
+}
+
+model Comment {
+  id            String          @id           @default(uuid())
+  authorId      String
+  postId        String
+  content       String
+  createdAt     TimestamptzString          @default(now())
+  updatedAt     temporal.updatedAtString()
+
+  //relations
+  author        User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post          Post                       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likes         CommentLike[]
+  notifications Notification[]
+
+  @@index([authorId, postId])
+}
+
+
+model PostLike {
+  id        String            @id @default(uuid())
+  authorId  String
+  postId    String
+  createdAt TimestamptzString @default(now())
+
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, postId])
+  @@unique([authorId, postId]) // Perfectly prevents duplicate post likes
+}
+
+model CommentLike {
+  id        String            @id @default(uuid())
+  authorId  String
+  commentId String
+  createdAt TimestamptzString @default(now())
+
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comment   Comment           @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, commentId])
+  @@unique([authorId, commentId]) // Perfectly prevents duplicate comment likes
+}
+
+enum LikeType{
+  POST
+  COMMENT
+}
+
+model Follows {
+  accountId    String
+  followedById String
+  createdAt  TimestamptzString @default(now())
+
+  // relations
+  account User @relation("account", fields:[accountId], references: [id], onDelete: Cascade)
+  followedBy User @relation("followedBy", fields: [followedById], references: [id], onDelete: Cascade)
+
+  @@index([accountId, followedById])
+  @@id([accountId, followedById])
+}
+
+
+model Notification {
+  id String @id @default(uuid())
+  receivedById String
+  createdById String
+  type NotificationType
+  read Boolean
+  postId String?
+  commentId String?
+  createdAt DateTime @default(now())
+
+  //relations
+  receivedBy User @relation("receivedBy", fields: [receivedById], references: [id])
+  createdBy User @relation("createdBy", fields: [createdById], references: [id])
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([receivedById, createdAt])
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+}
