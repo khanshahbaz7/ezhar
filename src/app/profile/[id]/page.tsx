@@ -3,15 +3,16 @@ import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { CalendarDays, ChevronRight, MapPin } from "lucide-react";
+import { CalendarDays, ChevronRight, Globe, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import PostTabs from "@/components/PostTabs";
 import ProfileCard from "@/components/ProfileCard";
 import FollowButton from "@/components/FollowButton";
+import EditProfileDialog from "@/components/EditProfileDialog";
 import RightSidebar from "@/components/RightSidebar";
 import { getMyLikePosts, getMyPost } from "@/app/actions/post.action";
 import { getDbUserId } from "@/app/actions/user.action";
+import { isFollowing } from "@/app/actions/profile.action";
 
 type ProfilePageProps = {
   params: Promise<{ id: string }>;
@@ -54,15 +55,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     _count: { followers, following, posts: postCount },
   };
 
-  // Own profile? Then it's "Edit Profile". Otherwise check if we already follow them.
+  // Own profile? Then it's "Edit Profile". The action handles guest/own-profile guards itself.
   const isMe = dbUserId === id;
-  const isFollowing = !isMe && dbUserId
-    ? Boolean(
-        await db.query.follows.findFirst({
-          where: { accountId: id, followedById: dbUserId },
-        }),
-      )
-    : false;
+  const isFollowingProfile = await isFollowing(id);
+
+  // For the website link: store whatever the user saved, but make sure the href has a scheme.
+  const websiteHref = user.website
+    ? /^https?:\/\//.test(user.website)
+      ? user.website
+      : `https://${user.website}`
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8 dark:bg-black">
@@ -116,18 +118,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   </h1>
 
                   {isMe ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 shrink-0 rounded-full border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:border-neutral-700 dark:bg-black dark:text-neutral-200 dark:hover:bg-neutral-900 dark:hover:text-white"
-                    >
-                      Edit Profile
-                    </Button>
+                    <EditProfileDialog
+                      name={user.name}
+                      username={user.username}
+                      bio={user.bio}
+                      location={user.location}
+                      website={user.website}
+                    />
                   ) : (
                     <FollowButton
                       userId={user.id}
                       name={user.name ?? "this user"}
-                      initialFollowing={isFollowing}
+                      initialFollowing={isFollowingProfile}
                     />
                   )}
                 </div>
@@ -138,6 +140,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   <p className="mt-3 max-w-md text-[15px] leading-relaxed text-slate-700 dark:text-neutral-300">
                     {user.bio}
                   </p>
+                )}
+
+                {websiteHref && (
+                  <a
+                    href={websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 flex w-fit items-center gap-1 text-sm text-slate-500 underline-offset-2 hover:underline dark:text-neutral-400"
+                  >
+                    <Globe className="size-4" />
+                    {user.website!.replace(/^https?:\/\//, "")}
+                  </a>
                 )}
 
                 <p className="mt-3 flex items-center gap-1 text-sm text-slate-500 dark:text-neutral-400">

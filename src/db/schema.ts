@@ -46,6 +46,7 @@ export const users = pgTable('users', {
   name: text('name'),
   bio: text('bio'),
   location: text('location'),
+  website: text('website'),
   avatarUrl: text('avatar_url'),
   coverUrl: text('cover_url'),
   createdAt: createdAt(),
