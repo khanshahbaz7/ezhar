@@ -15,7 +15,7 @@ const Home = async () => {
   const dbUserId = await getDbUserId();
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 dark:bg-black">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)_300px]">
           
@@ -45,7 +45,7 @@ const Home = async () => {
                   />
                 ))
               ) : (
-                <div className="rounded-xl border bg-white p-10 text-center">
+                <div className="rounded-xl border bg-card p-10 text-center">
                   <p className="font-medium">No posts yet</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Be the first person to create a post!

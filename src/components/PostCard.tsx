@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { createComment, getPosts, toggleLike } from "@/app/actions/post.action";
 import toast from "react-hot-toast";
 import { useAuth, useClerk } from "@clerk/nextjs";
@@ -96,38 +97,43 @@ export default function PostCard({ post, dbUserId }: PostCardProps) {
 
   return (
     <>
-      <Card className="w-full overflow-hidden border-slate-200">
+      <Card className="w-full overflow-hidden">
         {/* Header */}
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <Avatar className="size-10">
-              <AvatarImage
-                src={post.author.avatarUrl ?? undefined}
-                alt={post.author.name ?? "User"}
-              />
+            {/* Avatar + name + username — all link to the author's profile */}
+            <Link
+              href={`/profile/${post.author.id}`}
+              className="flex items-center gap-3 rounded-sm "
+            >
+              <Avatar className="size-10">
+                <AvatarImage
+                  src={post.author.avatarUrl ?? undefined}
+                  alt={post.author.name ?? "User"}
+                />
 
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
 
-            {/* User information */}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">
-                  {post.author.name}
-                </span>
+              {/* User information */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold hover:underline hover:underline-offset-2">
+                    {post.author.name}
+                  </span>
 
-                <span className="text-xs text-muted-foreground">·</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+
+                  <span className="text-xs text-muted-foreground">
+                    {formattedDate}
+                  </span>
+                </div>
 
                 <span className="text-xs text-muted-foreground">
-                  {formattedDate}
+                  @{post.author.username}
                 </span>
               </div>
-
-              <span className="text-xs text-muted-foreground">
-                @{post.author.username}
-              </span>
-            </div>
+            </Link>
           </div>
 
           {/* More button */}
@@ -155,7 +161,7 @@ export default function PostCard({ post, dbUserId }: PostCardProps) {
 
         {/* Content */}
         <CardContent className="p-4">
-          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800 dark:text-neutral-200">
             {post.content}
           </p>
 
@@ -172,7 +178,7 @@ export default function PostCard({ post, dbUserId }: PostCardProps) {
               {hasLiked ? (
                 <HeartIcon className="size-5 fill-red-500 text-red-500" />
               ) : (
-                <HeartIcon className="size-5 text-slate-600" />
+                <HeartIcon className="size-5 text-slate-600 dark:text-neutral-400" />
               )}
 
               <span>{optimisticLikes}</span>

@@ -9,31 +9,41 @@ import { Spinner } from "./ui/spinner";
 type FollowButtonProps = {
   userId: string;
   name: string;
+  /** Whether the signed-in user already follows this user when the component mounts. */
+  initialFollowing?: boolean;
 };
 
-const FollowButton = ({ userId, name }: FollowButtonProps) => {
+const FollowButton = ({
+  userId,
+  name,
+  initialFollowing = false,
+}: FollowButtonProps) => {
   const [loading, setLoading] = useState(false);
-  const [following, setFollowing] = useState(false);
+  const [following, setFollowing] = useState(initialFollowing);
 
   const handleFollow = async () => {
-    if (loading || following) return;
+    if (loading) return;
 
+    setFollowing((prev) => !prev);
     setLoading(true);
 
     try {
       const result = await toggleFollow(userId);
 
       if (result?.success) {
-        // Change the button locally.
-        setFollowing(true);
-
-        toast.success(`Started following ${name}`);
+        toast.success(
+          following ? `Unfollowed ${name}` : `Started following ${name}`,
+        );
       } else {
-        toast.error(result?.error ?? "Failed to follow");
+        // Revert the optimistic state on failure.
+        setFollowing(following);
+        toast.error(result?.error ?? "Failed to update follow");
       }
     } catch (error) {
       console.error(error);
-      toast.error("Failed to follow");
+      // Revert the optimistic state on failure.
+      setFollowing(following);
+      toast.error("Failed to update follow");
     } finally {
       setLoading(false);
     }
@@ -45,11 +55,11 @@ const FollowButton = ({ userId, name }: FollowButtonProps) => {
       variant={following ? "secondary" : "default"}
       className={
         following
-          ? "h-8 cursor-default bg-slate-200 text-xs text-slate-600 hover:bg-slate-200"
-          : "h-8 cursor-pointer bg-blue-600 text-xs text-white hover:bg-blue-700"
+          ? "h-7 cursor-pointer bg-slate-200 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          : "h-7 cursor-pointer bg-blue-600 px-4 text-xs text-white hover:bg-blue-700"
       }
       onClick={handleFollow}
-      disabled={loading || following}
+      disabled={loading}
     >
       {loading ? (
         <Spinner className="size-4" />

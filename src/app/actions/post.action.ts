@@ -38,26 +38,29 @@ export async function createPost(content: string, image?: string, imageFileId?: 
     }
 }
 
+// Shared relation selection so every post query returns the exact same shape.
+const postWithRelations = {
+    author: {
+        columns: { id: true, name: true, avatarUrl: true, username: true, }
+    },
+    comments: {
+        orderBy: { createdAt: "asc" },
+        with: {
+            author: {
+                columns: { id: true, name: true, avatarUrl: true, username: true }
+            }
+        }
+    },
+    likes: {
+        columns: { authorId: true }
+    }
+} as const;
+
 export async function getPosts() {
     try {
         const posts = await db.query.posts.findMany({
             orderBy: { createdAt: "desc" },
-            with: {
-                author: {
-                    columns: { id: true, name: true, avatarUrl: true, username: true, }
-                },
-                comments: {
-                    orderBy: { createdAt: "asc" },
-                    with: {
-                        author: {
-                            columns: { id: true, name: true, avatarUrl: true, username: true }
-                        }
-                    }
-                },
-                likes: {
-                    columns: { authorId: true }
-                }
-            }
+            with: postWithRelations
         });
 
         return posts.map((post) => ({
@@ -70,6 +73,56 @@ export async function getPosts() {
     } catch (error) {
         console.log("Error in getPosts", error);
         throw new Error("Failed to fetch posts");
+    }
+}
+
+export async function getMyPost() {
+    try {
+        const dbUserId = await getDbUserId();
+        if (!dbUserId) return [];
+
+        const posts = await db.query.posts.findMany({
+            orderBy: { createdAt: "desc" },
+            where: { authorId: dbUserId },
+            with: postWithRelations
+        });
+
+        return posts.map((post) => ({
+            ...post,
+            _count: {
+                likes: post.likes.length,
+                comments: post.comments.length
+            }
+        }))
+    } catch (error) {
+        console.log("Error in getMyPost", error);
+        throw new Error("Failed to fetch my posts");
+    }
+}
+
+export async function getMyLikePosts() {
+    try {
+        const dbUserId = await getDbUserId();
+        if (!dbUserId) return [];
+
+        const posts = await db.query.posts.findMany({
+            orderBy: { createdAt: "desc" },
+            where: {
+                likes: { authorId: dbUserId },
+            },
+            with: postWithRelations
+        });
+
+        return posts.map((post) => ({
+            ...post,
+            _count: {
+                likes: post.likes.length,
+                comments: post.comments.length
+            }
+        }))
+    } catch (error) {
+        console.log("Error in getMyLikePosts", error);
+        throw new Error("Failed to fetch my liked posts");
     }
 }
 
